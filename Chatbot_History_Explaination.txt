@@ -1,0 +1,71 @@
+1. Importing Libraries
+
+Imports all the necessary modules like Flask, os, dotenv, and google.genai.
+
+These help in creating the web app, connecting to Gemini, and loading environment variables.
+
+2. Loading Environment Variables
+
+load_dotenv() loads secret data from the .env file.
+
+This keeps your API key safe and hidden from your code.
+
+3. Creating the Flask App
+
+app = Flask(__name__) starts a new Flask web application.
+
+Flask handles the backend (server) part of the chatbot.
+
+4. Getting the Gemini API Key
+
+os.getenv("GEMINI_API_KEY") fetches the API key from .env.
+
+Without this key, the program can’t connect to Google’s Gemini AI.
+
+5. Checking for Missing API Key
+
+If the API key is not found, the code prints an error and exits.
+
+This prevents the app from running without proper setup.
+
+6. Connecting to Gemini
+
+client = genai.Client(api_key=API_KEY) connects the Flask app to Gemini AI.
+
+model_name = "gemini-2.5-flash" selects the specific Gemini model to use.
+
+7. Setting System Instructions
+
+Defines how the chatbot should behave (friendly, short, and in bullet points).
+
+Helps maintain a consistent and structured response style.
+
+8. Creating a Chat Session
+
+Starts a new chat session with Gemini using the model and system instructions.
+
+This session remembers the context of the conversation.
+
+9.Home Route (Frontend Display)
+
+@app.route('/') loads the index.html file from the templates folder.
+
+This is the main chatbot interface the user interacts with.
+
+10. Chat Route (Backend Communication)
+
+@app.route('/chat', methods=['POST']) handles messages from the user.
+
+Takes the user’s input, sends it to Gemini, and returns the AI’s response as JSON.
+
+11. Error Handling
+
+If any issue occurs (like API error), it catches the exception.
+
+Sends a simple error message back instead of crashing the app.
+
+12. Running the App
+
+app.run(debug=True) starts the chatbot server locally.
+
+debug=True helps identify errors during development.

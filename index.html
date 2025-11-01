@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova Chatbot (Dark Mode)</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        /* --- DARK MODE STYLES --- */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212; /* Dark background */
+            color: #e0e0e0; /* Light text for general content */
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            min-height: 100vh;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #1e1e1e; /* Slightly lighter dark background for chat box */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        #chat-box {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            border-bottom: 1px solid #333;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* User Message Styling (Blue/Accent) */
+        .message.user .message-content {
+            background-color: #007bff; /* Primary blue for user */
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        /* Bot Message Styling (Gray/Secondary) */
+        .message.bot .message-content {
+            background-color: #333333; /* Dark gray for bot */
+            color: #e0e0e0;
+            border-bottom-left-radius: 5px;
+        }
+
+        /* Markdown-specific styling for bullet points */
+        .message.bot .message-content ul, .message.bot .message-content p {
+            margin-top: 5px;
+            margin-bottom: 5px;
+        }
+        
+        /* Ensure bullet points are visible and styled correctly */
+        .message.bot .message-content ul {
+            padding-left: 20px;
+        }
+        
+        /* Input Area Styling */
+        #input-area {
+            display: flex;
+            padding: 10px 20px;
+            background-color: #2c2c2c;
+        }
+
+        #user-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #444;
+            border-radius: 20px;
+            margin-right: 10px;
+            background-color: #333;
+            color: #e0e0e0;
+            resize: none; /* Disable resizing */
+            overflow: hidden;
+            max-height: 100px; /* Limit input height */
+        }
+
+        #send-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+
+        #send-button:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        
+        #send-button:disabled {
+            background-color: #444;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="chat-box">
+        <div class="message bot">
+            <div class="message-content">
+                Hi! I'm **Nova** 👋. I specialize in **quick, easy-to-read answers** 🚀. Ask me anything!
+            </div>
+        </div>
+    </div>
+    <div id="input-area">
+        <textarea id="user-input" placeholder="Type your message..." rows="1" oninput="autoExpand()"></textarea>
+        <button id="send-button" onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+
+    // Function to resize the textarea based on content
+    function autoExpand() {
+        userInput.style.height = 'auto';
+        userInput.style.height = userInput.scrollHeight + 'px';
+    }
+
+    // Function to append a message to the chat box
+    function appendMessage(sender, text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${sender}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+
+        if (sender === 'bot') {
+            // Use marked.js to convert Markdown (like bullet points) to HTML
+            contentDiv.innerHTML = marked.parse(text);
+        } else {
+            contentDiv.textContent = text;
+        }
+        
+        messageDiv.appendChild(contentDiv);
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight; // Scroll to the bottom
+    }
+
+    // Function to handle sending the message
+    async function sendMessage() {
+        const message = userInput.value.trim();
+        if (message === '') return;
+
+        // 1. Display user message
+        appendMessage('user', message);
+        userInput.value = '';
+        userInput.style.height = 'auto'; // Reset textarea height
+
+        // Disable input and button while waiting for response
+        userInput.disabled = true;
+        sendButton.disabled = true;
+        sendButton.textContent = '...';
+
+        try {
+            // 2. Send request to Flask backend
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message }),
+            });
+
+            const data = await response.json();
+
+            // 3. Display bot response
+            if (data.response) {
+                appendMessage('bot', data.response);
+            } else if (data.error) {
+                appendMessage('bot', `*Error*: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Fetch error:', error);
+            appendMessage('bot', `*Network Error*: Could not reach the server.`);
+        } finally {
+            // Re-enable input and button
+            userInput.disabled = false;
+            sendButton.disabled = false;
+            sendButton.textContent = 'Send';
+            userInput.focus();
+        }
+    }
+
+    // Allow sending message by pressing Enter (but not Shift+Enter)
+    userInput.addEventListener('keydown', function(event) {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault(); // Prevent new line
+            sendMessage();
+        }
+    });
+</script>
+
+</body>
+</html>
